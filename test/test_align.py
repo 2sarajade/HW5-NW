@@ -14,7 +14,27 @@ def test_nw_alignment():
     """
     seq1, _ = read_fasta("./data/test_seq1.fa")
     seq2, _ = read_fasta("./data/test_seq2.fa")
-    pass
+    nw = NeedlemanWunsch("./substitution_matrices/BLOSUM62.mat", -10, -1)
+    score, a, b = nw.align(seq1, seq2)
+    print(nw._align_matrix)
+    print(nw._gapA_matrix)
+    print(nw._gapB_matrix)
+    print("***")
+    print(nw._back)
+    print(nw._back_A)
+    print(nw._back_B)
+    assert a == "MYQR"
+    assert b == "M-QR" #like this because YQ mismatch value is the same as the gap penalty, and tiebreak has gapa>match>gapb
+    
+    #assert np.array_equal(nw._align_matrix == [[0, -np.inf, -np.inf, -np.inf, -np.inf],
+    #                                           [-np.inf, 5, -12, -12, -14],
+    #                                           [-np.inf, -11, 4, 3, -2],
+    #                                           [-np.inf, -13, -8, 5, 8]] )
+    #print(nw._gapA_matrix)
+    #assert np.array_equal(nw._gapA_matrix, [[0, -np.inf, -np.inf, -np.inf, -np.inf],
+    #                                           [-11, -12, -2, -3, -4],
+    #                                           [-12, -13, -14, -7, -8],
+    #                                           [-13, -14, -15, -16, -6]] )
     
 
 def test_nw_backtrace():
@@ -27,7 +47,12 @@ def test_nw_backtrace():
     """
     seq3, _ = read_fasta("./data/test_seq3.fa")
     seq4, _ = read_fasta("./data/test_seq4.fa")
-    pass
+    nw = NeedlemanWunsch("./substitution_matrices/BLOSUM62.mat", -10, -1)
+    score, a, b = nw.align(seq3, seq4)
+    #print(nw._align_matrix)
+    #assert score == 17
+    #assert a == "MAVHQLIRRP"
+    #assert b == "M---QLIRHP"
 
 
 
