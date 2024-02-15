@@ -128,59 +128,55 @@ class NeedlemanWunsch:
         
         # TODO: Initialize matrix private attributes for use in alignment
         # create matrices for alignment scores, gaps, and backtracing
-        x, y = len(seqA), len(seqB)
-        self._align_matrix = np.full((y+1, x+1), -np.inf)
-        self._gapA_matrix = np.full((y+1, x+1), -np.inf)
-        self._gapB_matrix = np.full((y+1, x+1), -np.inf)
-        self._back = np.full((y+1, x+1), -np.inf)
-        self._back_A = np.full((y+1, x+1), -np.inf)
-        self._back_B = np.full((y+1, x+1), -np.inf)
+        m, n = len(seqA), len(seqB)
+        self._align_matrix = np.full((m+1, n+1), -np.inf)
+        self._gapA_matrix = np.full((m+1, n+1), -np.inf)
+        self._gapB_matrix = np.full((m+1, n+1), -np.inf)
+        self._back = np.full((m+1, n+1), -np.inf)
+        self._back_A = np.full((m+1, n+1), -np.inf)
+        self._back_B = np.full((m+1, n+1), -np.inf)
 
         # initialize values
         self._align_matrix[0,0] = 0
         self._back[0,0] = -1
         self._back_A[0,0] = -1
         self._back_B[0,0] = -1
-        for i in range(x + 1):
-            self._gapB_matrix[0,i] = self.gap_open + (i * self.gap_extend)
-            self._back_B[0,i] = 2 
-        for j in range(y + 1):
-            self._gapA_matrix[j,0] = self.gap_open + (j * self.gap_extend)
-            self._back_A[j,0] = 1
+        for i in range(m + 1):
+            self._gapA_matrix[i,0] = self.gap_open + (i * self.gap_extend)
+            self._back_A[i,0] = 1 
+        for j in range(n + 1):
+            self._gapB_matrix[0,j] = self.gap_open + (j * self.gap_extend)
+            self._back_B[0,j] = 2
 
         
         # TODO: Implement global alignment here
-        for i in range(1, y + 1):
-            for j in range(1,x + 1):
+        for i in range(1, n + 1):
+            for j in range(1,m + 1):
                 # pick M
-                match_val = self.sub_dict.get((seqB[i-1], seqA[j-1]))
-                M_match = self._align_matrix[i-1, j-1] + match_val
-                M_agap = self._gapA_matrix[i-1, j-1] + match_val
-                M_bgap = self._gapB_matrix[i-1, j-1] + match_val
-                if i == 2 and j == 3:
-                    print(match_val)
-                    print([M_match, M_agap, M_bgap])
+                match_val = self.sub_dict.get((seqA[j-1],seqB[i-1]))
+                M_match = self._align_matrix[j-1, i-1] + match_val
+                M_agap = self._gapA_matrix[j-1, i-1] + match_val
+                M_bgap = self._gapB_matrix[j-1, i-1] + match_val #problem here, match val not getting added to bgap value
                 M_options = [M_match, M_agap, M_bgap]
                 M_choice = np.argmax(M_options)
                 # 0 = match, 1 = agap, 2 = bgap, (in event of a tie, match > agap > bgap)
-                self._back[i,j] = M_choice
-                self._align_matrix[i,j] = M_options[M_choice] 
+                self._back[j,i ] = M_choice
+                self._align_matrix[j,i] = M_options[M_choice] 
                 # pick a gap
-                A_open = self._align_matrix[i-1, j] + self.gap_open + self.gap_extend
-                A_extend = self._gapA_matrix[i-1, j] + self.gap_extend
+                A_open = self._align_matrix[j, i-1] + self.gap_open + self.gap_extend
+                A_extend = self._gapA_matrix[j, i-1] + self.gap_extend
                 A_options = [A_open, A_extend, -np.inf] #same order
                 A_choice = np.argmax(A_options)
-                self._back_A[i,j] = A_choice
-                self._gapA_matrix[i,j] = A_options[A_choice]
+                self._back_A[j,i] = A_choice
+                self._gapA_matrix[j,i] = A_options[A_choice]
                 # pick b gap
-                B_open = self._align_matrix[i, j-1] + self.gap_open + self.gap_extend
-                B_extend = self._gapB_matrix[i, j-1] + self.gap_extend
+                B_open = self._align_matrix[j-1, i] + self.gap_open + self.gap_extend
+                B_extend = self._gapB_matrix[j-1, i] + self.gap_extend
                 B_options = [B_open, -np.inf, B_extend] #same order
                 B_choice = np.argmax(B_options)
-                self._back_B[i,j] = B_choice
-                self._gapB_matrix[i,j] = B_options[B_choice]
+                self._back_B[j, i] = B_choice
+                self._gapB_matrix[j, i] = B_options[B_choice]
 
-        		    
         return self._backtrace()
 
     def _backtrace(self) -> Tuple[float, str, str]:
@@ -198,59 +194,48 @@ class NeedlemanWunsch:
          		the score and corresponding strings for the alignment of seqA and seqB
         """
  
-        x, y = len(self._seqA), len(self._seqB)
+        m, n = len(self._seqA), len(self._seqB)
+        
+        prev_direction = 0
+        current_mat = self._align_matrix
+        current_back = self._back
         # find the start point for backtrace
-        if self._align_matrix[y,x] >= self._gapA_matrix[y,x] and self._align_matrix[y,x] >= self._gapB_matrix[y,x]:
-           #match
-            current_back = self._back
-            current_mat = self._align_matrix
-            self.seqA_align = self._seqA[x-1]
-            self.seqB_align = self._seqB[y-1]
-            self.alignment_score = current_mat[y,x]
-            y -= 1
-            x -= 1
-        elif self._gapA_matrix[y,x] >= self._align_matrix[y,x] and self._gapA_matrix[y,x] >= self._gapB_matrix[y,x]:
-            #agap
+        if self._gapA_matrix[m,n] >= self._align_matrix[m,n] and self._gapA_matrix[m,n] >= self._gapB_matrix[m,n]:
+            prev_direction = 1
             current_back = self._back_A
             current_mat = self._gapA_matrix
-            self.seqA_align = "-"
-            self.seqB_align = self._seqB[y-1]
-            self.alignment_score = current_mat[y,x]
-            y -= 1
-        else:
-            #bgap
+            self._back_A
+        elif self._gapB_matrix[m,n] >= self._align_matrix[m,n] and self._gapB_matrix[m,n] >= self._gapA_matrix[m,n]:
+            prev_direction = 2
             current_back = self._back_B
             current_mat = self._gapB_matrix
-            self.seqA_align = self._seqA[x-1]
-            self.seqB_align = "-"
-            self.alignment_score = current_mat[y,x]
-            x -= 1
+            #what I was thinking: I jump the gun on switching matrices (why the q was too early)
+            # so setting up in the beginning then the loop will do all the backtrace, not one step done early.
+        self.alignment_score = current_mat[m,n]
 
-        # backtrace
-        while x > 0 or y > 0:
-            pointer = current_back[y,x]
-            if pointer == 0: # match
+        while m > 0 and n > 0:
+            
+            if prev_direction == 0: #match
+                self.seqA_align = self.seqA_align + self._seqA[m-1]
+                self.seqB_align = self.seqB_align + self._seqB[n-1]
                 current_back = self._back
-                current_mat = self._align_matrix
-                self.seqA_align = self.seqA_align + self._seqA[x-1]
-                self.seqB_align = self.seqB_align + self._seqB[y-1]
-                y -= 1
-                x -= 1
-            if pointer == 1: # a gap
-                current_back = self._back_A
-                current_mat = self._gapA_matrix
+                prev_direction = current_back[m,n]
+                m -= 1
+                n -= 1
+            if prev_direction == 1: #a gap
                 self.seqA_align = self.seqA_align + "-"
-                self.seqB_align = self.seqB_align + self._seqB[y-1]
-                y -= 1
-            if pointer == 2: # b gap
-                current_back = self._back
-                current_mat = self._align_matrix
-                self.seqA_align = self.seqA_align + self._seqA[x-1]
+                self.seqB_align = self.seqB_align + self._seqB[n-1]
+                current_back = self._back_A
+                prev_direction = current_back[m,n]
+                n -= 1
+            if prev_direction == 2: # b gap
+                self.seqA_align = self.seqA_align + self._seqA[m-1]
                 self.seqB_align = self.seqB_align + "-"
-                x -= 1
-                
-
-            if pointer == -np.inf:
+                current_back = self._back_B
+                prev_direction = current_back[m,n]
+                m -= 1
+            if prev_direction == -np.inf: #should never happen, here as a debugging tool
+                print(m,n)
                 print(self._back)
                 print(self._back_A)
                 print(self._back_B)
@@ -258,11 +243,11 @@ class NeedlemanWunsch:
                 print(self._align_matrix)
                 print(self._gapA_matrix)
                 print(self._gapB_matrix)
+                print("********")
                 print(self.seqA_align)
                 print(self.seqB_align)
-                raise ValueError('inf pointer')
-
-        
+                raise ValueError('-inf pointer')
+            
         #reverse the alignments
         self.seqA_align = self.seqA_align[::-1]
         self.seqB_align = self.seqB_align[::-1]
