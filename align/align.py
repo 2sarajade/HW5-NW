@@ -214,7 +214,6 @@ class NeedlemanWunsch:
         self.alignment_score = current_mat[m,n]
 
         while m > 0 and n > 0:
-            
             if prev_direction == 0: #match
                 self.seqA_align = self.seqA_align + self._seqA[m-1]
                 self.seqB_align = self.seqB_align + self._seqB[n-1]
@@ -222,13 +221,13 @@ class NeedlemanWunsch:
                 prev_direction = current_back[m,n]
                 m -= 1
                 n -= 1
-            if prev_direction == 1: #a gap
+            elif prev_direction == 1: #a gap
                 self.seqA_align = self.seqA_align + "-"
                 self.seqB_align = self.seqB_align + self._seqB[n-1]
                 current_back = self._back_A
                 prev_direction = current_back[m,n]
                 n -= 1
-            if prev_direction == 2: # b gap
+            elif prev_direction == 2: # b gap
                 self.seqA_align = self.seqA_align + self._seqA[m-1]
                 self.seqB_align = self.seqB_align + "-"
                 current_back = self._back_B
@@ -247,6 +246,15 @@ class NeedlemanWunsch:
                 print(self.seqA_align)
                 print(self.seqB_align)
                 raise ValueError('-inf pointer')
+            
+        #deal with gaps at beginning or end
+        if n > 0:
+            self.seqA_align = self.seqA_align + "-" * n
+            self.seqB_align = self.seqB_align + self._seqB[0:n][::-1]
+        if m > 0:
+            self.seqB_align = self.seqB_align + "-" * m
+            self.seqA_align = self.seqA_align + self._seqA[0:m][::-1]
+            
             
         #reverse the alignments
         self.seqA_align = self.seqA_align[::-1]
